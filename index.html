@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Expense & Budget Visualizer — Catat dan visualisasikan pengeluaran harian Anda" />
+  <title>Expense &amp; Budget Visualizer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+</head>
+<body class="light-mode">
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <h1 class="app-title">💰 Expense &amp; Budget Visualizer</h1>
+      <button
+        id="btn-toggle-theme"
+        class="btn btn-icon"
+        type="button"
+        aria-label="Ganti tema gelap/terang"
+        title="Ganti tema"
+      >
+        <span class="theme-icon theme-icon--light" aria-hidden="true">🌙</span>
+        <span class="theme-icon theme-icon--dark" aria-hidden="true">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== STORAGE WARNING BANNER ===== -->
+  <div id="storage-warning-banner" class="banner banner--warning" role="alert" hidden>
+    <span id="storage-warning-message">Data sebelumnya tidak dapat dimuat. Memulai dengan data baru.</span>
+    <button id="btn-dismiss-banner" class="btn btn-sm" type="button" aria-label="Tutup peringatan">✕</button>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="app-main">
+
+    <!-- ===== SECTION: SALDO TOTAL ===== -->
+    <section id="section-balance" class="card balance-card" aria-labelledby="balance-heading">
+      <h2 id="balance-heading" class="section-title">Total Pengeluaran</h2>
+      <div id="balance-display" class="balance-amount" aria-live="polite">Rp 0,00</div>
+
+      <!-- Budget Alert Indicator -->
+      <div id="budget-alert-indicator" class="budget-alert-indicator" role="alert" aria-live="polite" hidden>
+        <span class="budget-alert-icon" aria-hidden="true">⚠️</span>
+        <span id="budget-alert-message" class="budget-alert-message">
+          Peringatan: Total pengeluaran telah mencapai atau melebihi batas yang ditetapkan!
+        </span>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: FORM INPUT TRANSAKSI ===== -->
+    <section id="section-form" class="card" aria-labelledby="form-heading">
+      <h2 id="form-heading" class="section-title">Tambah Pengeluaran</h2>
+
+      <form id="form-transaction" class="transaction-form" novalidate>
+        <!-- Nama Item -->
+        <div class="form-group">
+          <label for="input-item-name" class="form-label">Nama Item <span class="required" aria-hidden="true">*</span></label>
+          <input
+            type="text"
+            id="input-item-name"
+            name="itemName"
+            class="form-control"
+            placeholder="Contoh: Makan siang"
+            maxlength="100"
+            autocomplete="off"
+            aria-required="true"
+            aria-describedby="error-item-name"
+          />
+          <span id="error-item-name" class="form-error" role="alert" aria-live="polite"></span>
+        </div>
+
+        <!-- Jumlah -->
+        <div class="form-group">
+          <label for="input-amount" class="form-label">Jumlah (Rp) <span class="required" aria-hidden="true">*</span></label>
+          <input
+            type="text"
+            id="input-amount"
+            name="amount"
+            class="form-control"
+            placeholder="Contoh: 25000"
+            inputmode="decimal"
+            autocomplete="off"
+            aria-required="true"
+            aria-describedby="error-amount"
+          />
+          <span id="error-amount" class="form-error" role="alert" aria-live="polite"></span>
+        </div>
+
+        <!-- Kategori -->
+        <div class="form-group">
+          <label for="select-category" class="form-label">Kategori <span class="required" aria-hidden="true">*</span></label>
+          <select
+            id="select-category"
+            name="category"
+            class="form-control form-select"
+            aria-required="true"
+            aria-describedby="error-category"
+          >
+            <option value="">-- Pilih Kategori --</option>
+            <option value="Makanan">Makanan</option>
+            <option value="Transportasi">Transportasi</option>
+            <option value="Hiburan">Hiburan</option>
+          </select>
+          <span id="error-category" class="form-error" role="alert" aria-live="polite"></span>
+        </div>
+
+        <!-- Submit -->
+        <div class="form-group form-actions">
+          <button type="submit" id="btn-add-transaction" class="btn btn-primary">
+            + Tambah Transaksi
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== SECTION: PENGATURAN (Accordion/Collapsible) ===== -->
+    <section id="section-settings" class="card" aria-labelledby="settings-heading">
+      <button
+        id="btn-toggle-settings"
+        class="accordion-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="settings-content"
+      >
+        <h2 id="settings-heading" class="section-title section-title--inline">⚙️ Pengaturan</h2>
+        <span class="accordion-icon" aria-hidden="true">▼</span>
+      </button>
+
+      <div id="settings-content" class="accordion-content" hidden>
+
+        <!-- Batas Pengeluaran -->
+        <div class="settings-group" id="budget-limit-group">
+          <h3 class="settings-subtitle">Batas Pengeluaran</h3>
+          <p class="settings-description">Tetapkan batas pengeluaran untuk mendapatkan peringatan visual.</p>
+
+          <form id="form-budget-limit" class="settings-form" novalidate>
+            <div class="form-group form-group--inline">
+              <label for="input-budget-limit" class="form-label">Batas (Rp)</label>
+              <input
+                type="text"
+                id="input-budget-limit"
+                name="budgetLimit"
+                class="form-control"
+                placeholder="Contoh: 500000"
+                inputmode="decimal"
+                autocomplete="off"
+                aria-describedby="error-budget-limit budget-limit-current"
+              />
+              <button type="submit" id="btn-set-budget" class="btn btn-secondary">Simpan</button>
+            </div>
+            <span id="error-budget-limit" class="form-error" role="alert" aria-live="polite"></span>
+            <p id="budget-limit-current" class="settings-current-value">
+              Batas saat ini: <strong id="budget-limit-display">Belum ditetapkan</strong>
+            </p>
+          </form>
+        </div>
+
+        <hr class="settings-divider" />
+
+        <!-- Tambah Kategori Kustom -->
+        <div class="settings-group" id="category-manager-group">
+          <h3 class="settings-subtitle">Kelola Kategori</h3>
+          <p class="settings-description">Tambahkan kategori pengeluaran kustom (maks. 20 kategori).</p>
+
+          <form id="form-add-category" class="settings-form" novalidate>
+            <div class="form-group form-group--inline">
+              <label for="input-category-name" class="form-label">Nama Kategori</label>
+              <input
+                type="text"
+                id="input-category-name"
+                name="categoryName"
+                class="form-control"
+                placeholder="Contoh: Kesehatan"
+                maxlength="50"
+                autocomplete="off"
+                aria-describedby="error-category-name"
+              />
+              <button type="submit" id="btn-add-category" class="btn btn-secondary">Tambah</button>
+            </div>
+            <span id="error-category-name" class="form-error" role="alert" aria-live="polite"></span>
+          </form>
+
+          <!-- Daftar Kategori -->
+          <div id="category-list-container" class="category-list-container" aria-label="Daftar kategori">
+            <ul id="category-list" class="category-list" aria-label="Kategori tersedia">
+              <!-- Diisi oleh JavaScript -->
+            </ul>
+          </div>
+        </div>
+
+      </div><!-- /settings-content -->
+    </section>
+
+    <!-- ===== SECTION: DAFTAR TRANSAKSI ===== -->
+    <section id="section-transactions" class="card" aria-labelledby="transactions-heading">
+      <div class="section-header">
+        <h2 id="transactions-heading" class="section-title">Daftar Transaksi</h2>
+
+        <!-- Kontrol Pengurutan -->
+        <div class="sort-controls" role="group" aria-label="Urutkan transaksi">
+          <span class="sort-label">Urutkan:</span>
+          <button
+            type="button"
+            class="btn btn-sort"
+            data-sort="default"
+            aria-pressed="true"
+            id="sort-default"
+          >Default</button>
+          <button
+            type="button"
+            class="btn btn-sort"
+            data-sort="amount_asc"
+            aria-pressed="false"
+            id="sort-amount-asc"
+          >Terkecil</button>
+          <button
+            type="button"
+            class="btn btn-sort"
+            data-sort="amount_desc"
+            aria-pressed="false"
+            id="sort-amount-desc"
+          >Terbesar</button>
+          <button
+            type="button"
+            class="btn btn-sort"
+            data-sort="category_az"
+            aria-pressed="false"
+            id="sort-category-az"
+          >Kategori A–Z</button>
+        </div>
+      </div>
+
+      <!-- Daftar Transaksi -->
+      <div id="transaction-list-container" class="transaction-list-container">
+        <ul id="transaction-list" class="transaction-list" aria-label="Riwayat transaksi" aria-live="polite">
+          <!-- Diisi oleh JavaScript -->
+        </ul>
+        <p id="transaction-empty-message" class="empty-message" hidden>
+          Belum ada transaksi. Tambahkan pengeluaran pertama Anda.
+        </p>
+        <p id="transaction-filter-empty-message" class="empty-message" hidden>
+          Tidak ada transaksi yang sesuai dengan filter yang dipilih.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: PIE CHART ===== -->
+    <section id="section-chart" class="card" aria-labelledby="chart-heading">
+      <h2 id="chart-heading" class="section-title">Distribusi Pengeluaran</h2>
+
+      <div id="chart-container" class="chart-container">
+        <canvas id="expense-chart" aria-label="Pie chart distribusi pengeluaran per kategori" role="img"></canvas>
+        <p id="chart-placeholder" class="chart-placeholder empty-message">
+          Tidak ada data untuk ditampilkan.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: RINGKASAN BULANAN ===== -->
+    <section id="section-monthly" class="card" aria-labelledby="monthly-heading">
+      <h2 id="monthly-heading" class="section-title">Ringkasan Bulanan</h2>
+
+      <div id="monthly-summary-container" class="monthly-summary-container">
+        <!-- Daftar bulan -->
+        <div id="monthly-list-container" class="monthly-list-container">
+          <ul id="monthly-list" class="monthly-list" aria-label="Ringkasan per bulan">
+            <!-- Diisi oleh JavaScript -->
+          </ul>
+          <p id="monthly-empty-message" class="empty-message">
+            Belum ada data ringkasan bulanan.
+          </p>
+        </div>
+
+        <!-- Detail transaksi bulan yang dipilih -->
+        <div id="monthly-detail-container" class="monthly-detail-container" hidden>
+          <div class="monthly-detail-header">
+            <h3 id="monthly-detail-title" class="monthly-detail-title"></h3>
+            <button
+              type="button"
+              id="btn-close-monthly-detail"
+              class="btn btn-sm"
+              aria-label="Tutup detail bulan"
+            >✕ Tutup</button>
+          </div>
+          <ul id="monthly-detail-list" class="transaction-list monthly-detail-list" aria-label="Transaksi bulan terpilih">
+            <!-- Diisi oleh JavaScript -->
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <p>Expense &amp; Budget Visualizer &copy; 2024 — Data tersimpan di browser Anda.</p>
+  </footer>
+
+  <!-- app.js dimuat setelah DOM siap -->
+  <script src="js/app.js"></script>
+</body>
+</html>
